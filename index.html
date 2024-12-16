@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS Fasilitas Kesehatan di Samosir</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #ffe4e1;
+        }
+
+        header {
+            background-color: #ff69b4;
+            color: #fff;
+            text-align: left;
+            padding: 10px 15px;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            position: relative;
+            text-align: center;
+        }
+
+        .background-image {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+            font-size: 36px;
+        }
+
+        .button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #fc0a83;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background-color: #ff1493;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 100px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            width: 300px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .close {
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <head>
+        <!-- Include Google Fonts for bubble-like fonts -->
+        <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    </head>
+
+    <header
+        style="display: flex; align-items: center; justify-content: space-between; padding: 20px; background-color: #FFD1DC; border-radius: 10px;">
+        <!-- Judul with custom bubble font and adjusted letter spacing -->
+        <h1 style="font-size: 24px; color: #333; margin: 0; font-family: 'Bangers', cursive; letter-spacing: 3px;">
+            WEBGIS FASILITAS KESEHATAN DI SAMOSIR
+        </h1>
+
+        <!-- Bagian Button GeoPortal dan Logo UGM -->
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <!-- Button GeoPortal Samosir -->
+            <a href="https://samosirkab.go.id/" target="_blank" class="button"
+                style="padding: 10px 20px; font-size: 16px; background-color: #808080; color: #FFF; text-decoration: none; border-radius: 8px; cursor: pointer;">
+                GeoPortal Samosir
+            </a>
+
+            <!-- Logo UGM -->
+            <img src="img/ugm.png" alt="Logo UGM" style="width: 50px; height: 50px; object-fit: contain;">
+        </div>
+    </header>
+
+
+
+
+    <!-- Bagian Container Gambar Background -->
+    <div class="container">
+        <img src="samosir.png" alt="Background" class="background-image">
+        <div class="overlay">
+            <p>Persebaran Fasilitas Kesehatan</p>
+            <a href="#" class="button" onclick="scrollToMap()">Peta</a>
+            <button class="button" onclick="openModal()">Info Pembuat</button>
+        </div>
+    </div>
+
+
+    <!-- Modal untuk Info Pembuat -->
+    <div id="infoModal" class="modal" style="display: none;">
+        <div class="modal-content"
+            style="background-color: #C71585; color: #FFF; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+            <!-- Tombol Close Modal -->
+            <span class="close" onclick="closeModal()"
+                style="font-size: 24px; cursor: pointer; color: #FFF; float: right;">&times;</span>
+            <h2 style="margin-top: 0; text-align: center;">Info Pembuat</h2>
+            <div style="text-align: center;">
+                <!-- Foto Pembuat -->
+                <div
+                    style="width: 120px; height: 120px; margin: 20px auto; border-radius: 50%; overflow: hidden; display: flex; justify-content: center; align-items: center; background-color: #FFF;">
+                    <img src="img/alipa.jpg" alt="Foto Pembuat" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <!-- Informasi Pembuat -->
+                <div>
+                    <p style="text-align: center;"><strong>Nama:</strong> Alifa Salwa Salsabillah Rangkuti</p>
+                    <p style="text-align: center;"><strong>NIM:</strong> 23/5160/44/SV/22669</p>
+                    <p style="text-align: center;"><strong>GitHub:</strong>
+                        <a href="https://github.com/alifasalwasalsabillahrangkuti" target="_blank"
+                            style="color: #FFD1DC; text-decoration: none;">
+                            github.com/alifasalwasalsabillahrangkuti
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fungsi untuk menampilkan modal
+        function openModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        // Fungsi untuk menutup modal
+        function closeModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+    </script>
+
+
+    <!-- Bagian Tampilan Jenis Fasilitas Kesehatan -->
+    <div id="fasilitas-section" style="max-width: 1200px; margin: 0 auto; border-radius: 20px;">
+
+        <h2 style="text-align: center; color: #333; font-size: 32px; margin-bottom: 30px;">
+            Jenis Fasilitas Kesehatan
+        </h2>
+
+        <!-- Foto Fasilitas Kesehatan with background -->
+        <div
+            style="padding: 30px 50px; background-color: #eeafbee5; display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; border-radius: 30px; margin-bottom: 50px;">
+
+            <!-- Rumah Sakit -->
+            <div id="rs-section" style="text-align: center; width: 250px; margin: 20px; position: relative;">
+                <!-- Icon inside the image, further lowered and enlarged -->
+                <img src="icon/rs.png" alt="Icon Rumah Sakit"
+                    style="width: 60px; height: 60px; position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); z-index: 1;">
+                <!-- Button -->
+                <button class="button fasilitas-button"
+                    style="padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+                    Rumah Sakit
+                </button>
+                <img src="img/rs.jpeg" alt="Rumah Sakit"
+                    style="width: 100%; height: 170px; object-fit: cover; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            </div>
+
+            <!-- Puskesmas -->
+            <div id="puskes-section" style="text-align: center; width: 250px; margin: 20px; position: relative;">
+                <!-- Icon inside the image, further lowered and enlarged -->
+                <img src="icon/puskes.png" alt="Icon Puskesmas"
+                    style="width: 60px; height: 60px; position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); z-index: 1;">
+                <!-- Button -->
+                <button class="button fasilitas-button"
+                    style="padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+                    Puskesmas
+                </button>
+                <img src="img/puskes.jpeg" alt="Puskesmas"
+                    style="width: 100%; height: 170px; object-fit: cover; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            </div>
+
+            <!-- Layanan Kesehatan -->
+            <div id="layanankes-section" style="text-align: center; width: 250px; margin: 20px; position: relative;">
+                <!-- Icon inside the image, further lowered and enlarged -->
+                <img src="icon/layanankes.png" alt="Icon Layanan"
+                    style="width: 60px; height: 60px; position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); z-index: 1;">
+                <!-- Button -->
+                <button class="button fasilitas-button"
+                    style="padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+                    Layanan Kesehatan
+                </button>
+                <img src="img/layanankes.jpeg" alt="Layanan Kesehatan"
+                    style="width: 100%; height: 170px; object-fit: cover; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Elemen Peta -->
+    <div id="map"></div>
+    
+
+    <!-- Table Section -->
+    <div id="facility-table"
+        style="max-width: 1200px; margin: 30px auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        <h3 style="text-align: center; color: #333; margin-bottom: 20px;">Tabel Jumlah Persebaran Fasilitas Kesehatan
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid black; padding: 12px; background-color: #faa8a8; color: #fff;">
+                        Kecamatan</th>
+                    <th style="border: 1px solid black; padding: 12px; background-color: #faa8a8; color: #fff;">RS</th>
+                    <th style="border: 1px solid black; padding: 12px; background-color: #faa8a8; color: #fff;">
+                        Puskesmas</th>
+                    <th style="border: 1px solid black; padding: 12px; background-color: #faa8a8; color: #fff;">Layanan
+                        Kesehatan</th>
+                    <th style="border: 1px solid black; padding: 12px; background-color: #faa8a8; color: #fff;">Edit
+                    </th>
+                    <th style="border: 1px solid black; padding: 12px; background-color: #faa8a8; color: #fff;">Hapus
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Harian</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">6</td>
+                    <td style="border: 1px solid black; padding: 8px;">4</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Nainggolan</td>
+                    <td style="border: 1px solid black; padding: 8px;">1</td>
+                    <td style="border: 1px solid black; padding: 8px;">1</td>
+                    <td style="border: 1px solid black; padding: 8px;">6</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Onan Runggu</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">2</td>
+                    <td style="border: 1px solid black; padding: 8px;">8</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Palipi</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">2</td>
+                    <td style="border: 1px solid black; padding: 8px;">12</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Pangururan</td>
+                    <td style="border: 1px solid black; padding: 8px;">1</td>
+                    <td style="border: 1px solid black; padding: 8px;">6</td>
+                    <td style="border: 1px solid black; padding: 8px;">14</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Ronggurnihuta</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">6</td>
+                    <td style="border: 1px solid black; padding: 8px;">4</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Sianjurmula-Mula</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">9</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Simanindo</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">5</td>
+                    <td style="border: 1px solid black; padding: 8px;">16</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Kecamatan Sitio-Tio</td>
+                    <td style="border: 1px solid black; padding: 8px;">0</td>
+                    <td style="border: 1px solid black; padding: 8px;">3</td>
+                    <td style="border: 1px solid black; padding: 8px;">1</td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="editRow(this)">Edit</button>
+                    </td>
+                    <td style="border: 1px solid black; padding: 8px; text-align: center;">
+                        <button onclick="deleteRow(this)">Hapus</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Fungsi untuk mengedit baris
+        function editRow(button) {
+            var row = button.parentNode.parentNode;
+            var cells = row.getElementsByTagName("td");
+
+            // Ubah hanya kolom data (bukan kolom Edit dan Hapus) menjadi input
+            for (var i = 0; i < cells.length - 2; i++) {
+                var value = cells[i].innerText;
+                cells[i].innerHTML = '<input type="text" value="' + value + '" style="width: 100%;">';
+            }
+
+            button.innerText = "Simpan";
+            button.setAttribute("onclick", "saveRow(this)");
+        }
+
+        // Fungsi untuk menyimpan perubahan setelah edit
+        function saveRow(button) {
+            var row = button.parentNode.parentNode;
+            var inputs = row.getElementsByTagName("input");
+
+            // Ubah input kembali menjadi teks biasa
+            for (var i = 0; i < inputs.length; i++) {
+                inputs[i].parentNode.innerText = inputs[i].value;
+            }
+
+            button.innerText = "Edit";
+            button.setAttribute("onclick", "editRow(this)");
+        }
+
+        // Fungsi untuk menghapus baris
+        function deleteRow(button) {
+            var row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+        }
+    </script>
+
+
+
+    <!-- Mengimpor Leaflet dan jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Fungsi membuka modal Info Pembuat
+        function openModal() {
+            document.getElementById("infoModal").style.display = "block";
+        }
+
+        // Fungsi menutup modal Info Pembuat
+        function closeModal() {
+            document.getElementById("infoModal").style.display = "none";
+        }
+
+        window.onclick = function (event) {
+            if (event.target === document.getElementById("infoModal")) {
+                closeModal();
+            }
+        }
+
+        // Menggulir halaman ke peta
+        function scrollToMap() {
+            var mapElement = document.getElementById("map");
+            if (mapElement) {
+                mapElement.scrollIntoView({ behavior: "smooth" });
+            }
+        }
+
+        // Inisialisasi Peta Menggunakan Leaflet
+        var map = L.map("map").setView([2.6606, 98.8353], 13);
+
+        // Membuat beberapa basemap untuk kontrol layer
+        var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+
+        var googleSat = L.tileLayer("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}");
+        var esriTopographic = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{x}/{y}.jpg");
+
+        // Menggabungkan semua basemap ke dalam kontrol layer
+        var baseMaps = {
+            "OpenStreetMap": osm,
+            "Google Satellite": googleSat,
+            "Esri Topographic": esriTopographic
+        };
+
+        osm.addTo(map);
+
+
+
+        // GeoJSON Point for Layanan Kesehatan (Healthcare Facilities)
+        var layanan_kesehatan = L.geoJSON(null, {
+            pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, {
+                    icon: L.icon({
+                        iconUrl: "icon/layanankes.png", // icon marker
+                        iconSize: [48, 48], // ukuran icon
+                        iconAnchor: [24, 48], // posisi icon terhadap titik (point)
+                        popupAnchor: [0, -48], // posisi popup terhadap icon
+                        tooltipAnchor: [-16, -30], // posisi tooltip terhadap icon
+                    }),
+                });
+            },
+            onEachFeature: function (feature, layer) {
+                var popup_content = "Nama Layanan: " + feature.properties.NAMOBJ + "<br>" +
+                    "Koordinat: " + feature.geometry.coordinates[1] + ", " + feature.geometry.coordinates[0];
+
+                layer.bindPopup(popup_content);
+
+                layer.on({
+                    mouseover: function (e) {
+                        layer.bindTooltip(feature.properties.NAMOBJ, {
+                            direction: "left",
+                            sticky: true,
+                        });
+                    },
+                });
+            },
+        });
+
+        // GeoJSON for Puskes (Healthcare Centers)
+        var puskes = L.geoJSON(null, {
+            pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, {
+                    icon: L.icon({
+                        iconUrl: "icon/puskes.png", // Change icon as needed
+                        iconSize: [48, 48], // icon size
+                        iconAnchor: [24, 48], // position of the icon
+                        popupAnchor: [0, -48], // position of the popup
+                        tooltipAnchor: [-16, -30], // position of the tooltip
+                    }),
+                });
+            },
+            onEachFeature: function (feature, layer) {
+                var popup_content = "Nama Puskesmas: " + feature.properties.NAMOBJ + "<br>" +
+                    "Koordinat: " + feature.geometry.coordinates[1] + ", " + feature.geometry.coordinates[0];
+                layer.bindPopup(popup_content);
+                layer.on({
+                    mouseover: function (e) {
+                        layer.bindTooltip(feature.properties.NAMOBJ, {
+                            direction: "left",
+                            sticky: true,
+                        });
+                    },
+                });
+            },
+        });
+
+        // GeoJSON for Rumah Sakit (RS)
+        var rs = L.geoJSON(null, {
+            pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, {
+                    icon: L.icon({
+                        iconUrl: "icon/rs.png", // Change icon as needed
+                        iconSize: [48, 48], // icon size
+                        iconAnchor: [24, 48], // position of the icon
+                        popupAnchor: [0, -48], // position of the popup
+                        tooltipAnchor: [-16, -30], // position of the tooltip
+                    }),
+                });
+            },
+            onEachFeature: function (feature, layer) {
+                var popup_content = "Nama Rumah Sakit: " + feature.properties.NAMOBJ + "<br>" +
+                    "Koordinat: " + feature.geometry.coordinates[1] + ", " + feature.geometry.coordinates[0];
+                layer.bindPopup(popup_content);
+                layer.on({
+                    mouseover: function (e) {
+                        layer.bindTooltip(feature.properties.NAMOBJ, {
+                            direction: "left",
+                            sticky: true,
+                        });
+                    },
+                });
+            },
+        });
+
+        // GeoJSON for Roads (Jalan)
+        var jalan = L.geoJSON(null, {
+            style: function (feature) {
+                return {
+                    color: "red",   // Road color
+                    weight: 1,       // Line thickness
+                    opacity: 1,      // Opacity of the road line
+                };
+            },
+        });
+
+        // Fungsi untuk menentukan warna berdasarkan NAMOBJ
+        function getColorByNAMOBJ(namobj) {
+            switch (namobj) {
+                case "SITIO-TIO":
+                    return "#FF0000"; // Merah
+                case "SIMANINDO":
+                    return "#00FF00"; // Hijau
+                case "SILAHISABUNG":
+                    return "#0000FF"; // Biru
+                case "SIANJURMULU":
+                    return "#FFFF00"; // Kuning
+                case "RONGGURNIHUTA":
+                    return "#FF00FF"; // Magenta
+                case "PORSEA":
+                    return "#FFA500"; // Oranye
+                case "PEMATANGSIDEMPUAN":
+                    return "#800080"; // Ungu
+                case "PANGURURAN":
+                    return "#008000"; // Hijau Tua
+                case "PALIPI":
+                    return "#FF6347"; // Tomat
+                case "ONANRUNGGU":
+                    return "#FFD700"; // Emas
+                case "NAINGGOLAN":
+                    return "#A52A2A"; // Coklat
+                case "MEREK":
+                    return "#D2691E"; // Coklat Tua
+                case "HARIAN":
+                    return "#FFFF00"; // Kuning
+                case "DOLOKPARDAMEAN":
+                    return "#4682B4"; // Biru Baja
+                default:
+                    return "#00FF00"; // Abu-abu untuk wilayah lainnya
+            }
+        }
+
+        // GeoJSON untuk Layer Administratif
+        var adminLayer = L.geoJSON(null, {
+            style: function (feature) {
+                return {
+                    color: getColorByNAMOBJ(feature.properties.NAMOBJ), // Warna sesuai NAMOBJ
+                    weight: 2,                                          // Ketebalan garis
+                    opacity: 1.0                                        // Menetapkan opacity menjadi 1 untuk menghilangkan transparansi
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                var popup_content = "Nama Wilayah: " + feature.properties.NAMOBJ;
+                layer.bindPopup(popup_content);
+                layer.on({
+                    mouseover: function () {
+                        layer.bindTooltip(feature.properties.NAMOBJ, {
+                            direction: "center",
+                            sticky: true
+                        });
+                    }
+                });
+            }
+        });
+
+        // Memuat data GeoJSON untuk layer admin
+        $.getJSON("data/admin.geojson", function (data) {
+            adminLayer.addData(data); // Tambahkan data ke GeoJSON Admin
+            map.addLayer(adminLayer); // Tambahkan layer admin ke peta
+        }).fail(function () {
+            console.error("Gagal memuat data admin.geojson. Periksa apakah file tersedia dan formatnya benar.");
+        });
+
+        // Overlay Maps for Control Layers
+        var overlays = {
+            "Layanan Kesehatan": layanan_kesehatan,
+            "Puskesmas": puskes,
+            "Rumah Sakit": rs,
+            "Jalan": jalan,
+            "Admin Layer": adminLayer
+        };
+
+        // Load GeoJSON data for all layers
+        $.getJSON("data/layanankes.geojson", function (data) {
+            layanan_kesehatan.addData(data);
+        });
+
+        $.getJSON("data/puskes.geojson", function (data) {
+            puskes.addData(data);
+        });
+
+        $.getJSON("data/rs.geojson", function (data) {
+            rs.addData(data);
+        });
+
+        $.getJSON("data/jalansamosir.geojson", function (data) {
+            jalan.addData(data);
+        });
+
+        $.getJSON("data/admin.geojson", function (data) {
+            adminLayer.addData(data);
+        });
+
+        // Add the control layers to the map
+        L.control.layers(baseMaps, overlays).addTo(map);
+
+        // Logo Watermark
+        L.Control.Watermark = L.Control.extend({
+            onAdd: function (map) {
+                var img = L.DomUtil.create('img');
+
+                img.src = 'icon/logoSVUGM.png';
+                img.style.width = '200px';
+
+                return img;
+            },
+
+            onRemove: function (map) {
+                // Nothing to do here
+            }
+        });
+
+        L.control.watermark = function (opts) {
+            return new L.Control.Watermark(opts);
+        }
+
+        L.control.watermark({ position: 'bottomleft' }).addTo(map);
+
+    </script>
+
+    <!-- Tombol untuk membuka pop-up -->
+    <div style="text-align: center; margin-top: 50px;">
+        <button onclick="openPopup()"
+            style="background-color: #C71585; color: #fff; padding: 12px 10px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+            Berikan Kritik dan Saran
+        </button>
+    </div>
+
+    <!-- Struktur Pop-up -->
+    <div id="popupContainer"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999;">
+        <div
+            style="background: #ffcccc; width: 600px; max-width: 90%; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); text-align: center;">
+            <h2 style="margin-top: 0; color: #333; font-size: 26px;">Kritik dan Saran</h2>
+            <textarea id="feedbackInput" rows="8"
+                style="width: 100%; height: 200px; padding: 15px; margin-bottom: 25px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px;"
+                placeholder="Tulis kritik dan saran Anda di sini..."></textarea>
+            <br>
+            <button onclick="sendFeedback()"
+                style="background-color: #4CAF50; color: #fff; padding: 12px 30px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
+                Kirim
+            </button>
+            <button onclick="closePopup()"
+                style="background-color: #f44336; color: #fff; padding: 12px 30px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">
+                Batal
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Pop-up dan Tombol Kirim -->
+    <script>
+        // Fungsi untuk membuka pop-up
+        function openPopup() {
+            document.getElementById("popupContainer").style.display = "block";
+        }
+
+        // Fungsi untuk menutup pop-up
+        function closePopup() {
+            document.getElementById("popupContainer").style.display = "none";
+        }
+
+        // Fungsi untuk mengirimkan kritik dan saran
+        function sendFeedback() {
+            var feedback = document.getElementById("feedbackInput").value;
+
+            if (feedback.trim() === "") {
+                alert("Kritik dan saran tidak boleh kosong.");
+            } else {
+                // Simulasi pengiriman data (bisa diintegrasikan dengan backend jika diperlukan)
+                console.log("Kritik dan Saran:", feedback);
+                alert("Terima kasih atas kritik dan saran Anda!");
+
+                // Kosongkan input dan tutup pop-up
+                document.getElementById("feedbackInput").value = "";
+                closePopup();
+            }
+        }
+    </script>
+
+
+</body>
+
+</html>
